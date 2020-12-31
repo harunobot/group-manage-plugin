@@ -1,0 +1,50 @@
+.gradle
+/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+/out/
+
+### NetBeans ###
+/nbproject/private/
+/build/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+.nb-gradle-properties
+
+### Custom ###
+*.jar
+**/.gradle/
+/.gradle/
+/backup/
+**/resources/
+**/test/
+**/build/
+*.properties
+*.yml
+*.yaml
+*.xml
+*.log
+*.jar
+*.json
+*.bat
+*.bak
+*debug*
+**/startup.bat
+src/main/java/io/github/harunobot/plugin/groupmaster/db/SessionManager.java
+src/main/java/io/github/harunobot/plugin/groupmaster/db/HibernateUtil.java

@@ -282,10 +282,8 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
         if(!enable){
             return true;
         }
+        MDC.put("module", PLUGIN_NAME);
         String uuid = generateUuid(event.groupId(), event.userId());
-        if(blockedUsers.contains(uuid)){
-            return false;
-        }
         TurnoverWrapper turnoverWrapper = groupTurnover.get(event.groupId());
         if(turnoverWrapper != null && turnoverWrapper.existSilenceUser()){
             List<Long> tasks = silenceKickTask.getIfPresent(uuid);
@@ -320,7 +318,7 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
                 return false;
             }
         }
-        return true;
+        return !blockedUsers.contains(uuid);
     }
     
     
@@ -462,10 +460,10 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
         });
         timers.add(reminder);
         long kicker = vertx().setTimer(wrapper.getSilenceTimeout()*1000, time -> {
-            if(wrapper.isRecordSilenceTimeout()){
+            kickMember(groupId, userId, wrapper.isRejectJoin());
+            if(wrapper.isBanIfSilenceTimeout()){
                 banMember(null, groupId, userId, 0, CauseType.TIMEOUT, null, false);
             }
-            kickMember(groupId, userId, wrapper.isRejectJoin());
         });
         timers.add(kicker);
         silenceKickTask.put(generateUuid(groupId, userId), timers);
@@ -535,22 +533,28 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
                     String folderName = new StringBuilder().append(groupId).append("-").append(userId).append("-").append("warn").append(Instant.now()).toString();
                     saveAttachmentBolbEntity(folderName, messages, banRecord);
                     
+                    kickMember(groupId, userId, false);
+                    LOG.info("member {} in {} has been kick by reach limit {}", userId, groupId, penaltyId); 
                     int warningCount = removeWarnings(groupId, userId, penaltyId, session);
                     LOG.info("remove {} {} {} warningCount {}", groupId, userId, penaltyId, warningCount); 
+                    return;
                 }
                 if(wrapper.muteMaxCount() > 0 && (count + 1 >= wrapper.muteMaxCount())){
                     muteUser(groupId, userId, wrapper.maxMuteDuration());
-                    int warningCount = removeWarnings(groupId, userId, penaltyId, session);
-                    LOG.info("remove {} {} {} warningCount {}", groupId, userId, penaltyId, warningCount);
+                    if(wrapper.muteMaxCount() > wrapper.banMaxCount()){
+                        int warningCount = removeWarnings(groupId, userId, penaltyId, session);
+                        LOG.info("remove {} {} {} warningCount {}", groupId, userId, penaltyId, warningCount);
+                        return;
+                    }
                 }
-            } else {
+                
                 UserWarnRecord warnRecord = new UserWarnRecord();
                 warnRecord.setPenaltyId(penaltyId);
                 warnRecord.setGroupId(groupId);
                 warnRecord.setUserId(userId);
                 warnRecord.setMessages(BotMessageRecord.convertBotMessages(messages));
                 warnRecord.setCreatetime(Instant.now());
-                
+
                 String folderName = new StringBuilder().append(groupId).append("-").append(userId).append("-").append("warn").append(Instant.now()).toString();
                 saveAttachmentBolbEntity(folderName, messages, warnRecord);
             }
@@ -791,7 +795,6 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
     private void handleAutoPenalty(BotEvent event, GroupAutoPenaltyWrapper wrapper){
         MDC.put("module", PLUGIN_NAME);
         LOG.info("user {} - {} {} trigger {}", event.groupId(), event.userId(), wrapper.punishment());
-        MDC.clear();
         switch(wrapper.punishment()){
             case MUTE:{
                 muteUser(event, wrapper.muteDuration());
@@ -841,7 +844,7 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
 //        } else {
 //            muteUser(event, manualPenaltyWrapper.muteDuration());
 //        }
-        
+        MDC.put("module", PLUGIN_NAME);
         long groupId = operatorEvent.groupId();
         long operatorId = operatorEvent.userId();
         long userId = 0;
@@ -886,7 +889,7 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
 //        meaasges[0] = new BotMessage.Builder().messageType(MessageContentType.REPLY).data(String.valueOf(originEvent.messageId())).build();
 //        meaasges[1] = new BotMessage.Builder().messageType(MessageContentType.TEXT).data("warning +1").build();
 //        sendGroupMessage(event.groupId(), meaasges, -1);
-        
+        MDC.put("module", PLUGIN_NAME);
         long groupId = operatorEvent.groupId();
         long operatorId = operatorEvent.userId();
         long userId = 0;
@@ -953,7 +956,7 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
     
     private void handleManualBanPenalty(String trait, BotEvent operatorEvent, BotEvent originEvent, boolean rejectJoin, boolean global){
 //        sendGroupMessage(operatorEvent.groupId(), "kicked", -1);
-        
+        MDC.put("module", PLUGIN_NAME);
         long groupId = operatorEvent.groupId();
         long operatorId = operatorEvent.userId();
         long userId = 0;
@@ -975,10 +978,13 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
             sendGroupMessageWithMention(groupId, operatorId, "user not specified", -1);
             return;
         }
-        kickMember(groupId, userId, rejectJoin);
         BotMessage textMessage = findTextMessage(trait, operatorEvent.messages());
         if(textMessage != null){
             cause = textMessage.data().replace(trait, "").trim();
+        }
+        kickMember(groupId, userId, rejectJoin);
+        if(cause != null && !cause.isBlank()){
+            sendGroupMessageWithMention(groupId, operatorId, "user "+userId+" has been kicked because of "+cause, -1);
         }
         if(originEvent != null){
             banMember(originEvent.messages(), groupId, userId, operatorId, CauseType.MANUAL, cause, global);

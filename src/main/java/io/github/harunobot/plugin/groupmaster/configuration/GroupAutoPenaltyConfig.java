@@ -15,6 +15,7 @@ import java.util.List;
  */
 public class GroupAutoPenaltyConfig {
     private List<String> ids;
+    @JsonProperty(value="warn-message")
     private String warnMessage;
     private PunishmentType punishment;
     @JsonProperty(value="mute-duration")

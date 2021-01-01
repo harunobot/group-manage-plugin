@@ -24,7 +24,7 @@ public class TurnoverWrapper {
     private List<BotMessage> farewell;
     private int silenceTimeout;
     private String silenceTimeoutWarning;
-    private boolean recordSilenceTimeout;
+    private boolean banIfSilenceTimeout;
     private boolean banLeave;
     private boolean rejectJoin;
     private int silenceUser = 0;
@@ -41,8 +41,8 @@ public class TurnoverWrapper {
             this.farewell = BotMessage.convertRecords(turnover.getFarewell());
         }
         this.silenceTimeout = turnover.getSilenceTimeout();
-        this.recordSilenceTimeout = turnover.isRecordSilenceTimeout();
         this.silenceTimeoutWarning = turnover.getSilenceTimeoutWarning();
+        this.banIfSilenceTimeout = turnover.isBanIfSilenceTimeout();
         this.banLeave = turnover.isBanLeave();
         this.rejectJoin = turnover.isRejectJoin();
     }
@@ -136,24 +136,17 @@ public class TurnoverWrapper {
     }
 
     /**
-     * @return the recordSilenceTimeout
-     */
-    public boolean isRecordSilenceTimeout() {
-        return recordSilenceTimeout;
-    }
-
-    /**
-     * @param recordSilenceTimeout the recordSilenceTimeout to set
-     */
-    public void setRecordSilenceTimeout(boolean recordSilenceTimeout) {
-        this.recordSilenceTimeout = recordSilenceTimeout;
-    }
-
-    /**
      * @return the rejectJoin
      */
     public boolean isRejectJoin() {
         return rejectJoin;
+    }
+
+    /**
+     * @return the banIfSilenceTimeout
+     */
+    public boolean isBanIfSilenceTimeout() {
+        return banIfSilenceTimeout;
     }
     
 }

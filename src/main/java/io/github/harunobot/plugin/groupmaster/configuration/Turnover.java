@@ -21,8 +21,8 @@ public class Turnover {
     private int silenceTimeout;
     @JsonProperty(value="silence-timeout-warning")
     private String silenceTimeoutWarning;
-    @JsonProperty(value="record-silence-timeout")
-    private boolean recordSilenceTimeout;
+    @JsonProperty(value="ban-if-silence-timeout")
+    private boolean banIfSilenceTimeout;
     @JsonProperty(value="ban-if-leave")
     private boolean banLeave;
     @JsonProperty(value="reject-join")
@@ -111,20 +111,6 @@ public class Turnover {
     public void setSilenceTimeoutWarning(String silenceTimeoutWarning) {
         this.silenceTimeoutWarning = silenceTimeoutWarning;
     }
-
-    /**
-     * @return the recordSilenceTimeout
-     */
-    public boolean isRecordSilenceTimeout() {
-        return recordSilenceTimeout;
-    }
-
-    /**
-     * @param recordSilenceTimeout the recordSilenceTimeout to set
-     */
-    public void setRecordSilenceTimeout(boolean recordSilenceTimeout) {
-        this.recordSilenceTimeout = recordSilenceTimeout;
-    }
     
     /**
      * @return the rejectJoin
@@ -138,5 +124,19 @@ public class Turnover {
      */
     public void setRejectJoin(boolean rejectJoin) {
         this.rejectJoin = rejectJoin;
+    }
+
+    /**
+     * @return the banIfSilenceTimeout
+     */
+    public boolean isBanIfSilenceTimeout() {
+        return banIfSilenceTimeout;
+    }
+
+    /**
+     * @param banIfSilenceTimeout the banIfSilenceTimeout to set
+     */
+    public void setBanIfSilenceTimeout(boolean banIfSilenceTimeout) {
+        this.banIfSilenceTimeout = banIfSilenceTimeout;
     }
 }

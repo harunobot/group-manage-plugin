@@ -107,6 +107,7 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
     private final Map<Long, TurnoverWrapper> groupTurnover = new HashMap();
     private final Set<Long> superAdmin = new HashSet();
     private final ObjectOpenHashSet<String> blockedUsers = new ObjectOpenHashSet();
+    private final Map<String, Long> blockedUserTimers = new HashMap();
     
     private ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     private Cache<String, List<Long>> silenceKickTask = Caffeine.newBuilder()
@@ -455,11 +456,11 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
 //            task = new HashMap();
 //        }
         List<Long> timers = new ArrayList();
-        long reminder = vertx().setTimer(wrapper.getSilenceTimeout()*1000/2, time -> {
+        long reminder = vertx().setTimer(TimeUnit.SECONDS.toMillis(wrapper.getSilenceTimeout())/2, time -> {
             sendGroupMessageWithMention(groupId, userId, wrapper.getSilenceTimeoutWarning(), -1);
         });
         timers.add(reminder);
-        long kicker = vertx().setTimer(wrapper.getSilenceTimeout()*1000, time -> {
+        long kicker = vertx().setTimer(TimeUnit.SECONDS.toMillis(wrapper.getSilenceTimeout()), time -> {
             kickMember(groupId, userId, wrapper.isRejectJoin());
             if(wrapper.isBanIfSilenceTimeout()){
                 banMember(null, groupId, userId, 0, CauseType.TIMEOUT, null, false);
@@ -942,10 +943,17 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
             }
         }
         String uuid = generateUuid(groupId, userId);
-        blockedUsers.add(uuid);
-        vertx().setTimer(duration*1000, time -> {
+        long timerId;
+        if(blockedUsers.contains(uuid)){
+            timerId = blockedUserTimers.remove(uuid);
+            vertx().cancelTimer(timerId);
+        }
+        timerId = vertx().setTimer(TimeUnit.SECONDS.toMillis(duration), time -> {
             blockedUsers.remove(uuid);
+            blockedUserTimers.remove(uuid);
         });
+        blockedUsers.add(uuid);
+        blockedUserTimers.put(uuid, timerId);
         sendGroupMessageWithMention(groupId, userId, sb.toString(), -1);
         if(originEvent != null){
             blockMember(originEvent.messages(), groupId, userId, operatorId, duration);
@@ -983,6 +991,7 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
             cause = textMessage.data().replace(trait, "").trim();
         }
         kickMember(groupId, userId, rejectJoin);
+        sendGroupMessage(groupId, "skymas admin kicks member "+userId, -1);
         if(cause != null && !cause.isBlank()){
             sendGroupMessageWithMention(groupId, operatorId, "user "+userId+" has been kicked because of "+cause, -1);
         }
@@ -1034,11 +1043,18 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
             Transaction tx = session.beginTransaction();
             long timestamp = Instant.now().toEpochMilli();
             blockedList.forEach(item -> {
-                if(item.getCreatetime().toEpochMilli()+(item.getDuration()*1000) < timestamp){
+                long diffMillis = item.getCreatetime().toEpochMilli()+(item.getDuration()*1000) - timestamp;
+                if(diffMillis <= 0){
                     session.delete(item);
                     return;
                 }
-                blockedUsers.add(generateUuid(item.getGroupId(), item.getUserId()));
+                String uuid = generateUuid(item.getGroupId(), item.getUserId());
+                long timerId = vertx().setTimer(diffMillis, time -> {
+                    blockedUsers.remove(uuid);
+                    blockedUserTimers.remove(uuid);
+                });
+                blockedUsers.add(uuid);
+                blockedUserTimers.put(uuid, timerId);
             });
             tx.commit();
             MDC.put("module", PLUGIN_NAME);

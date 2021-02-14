@@ -221,6 +221,9 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
                 if(!enable){
                     return null;
                 }
+                if(trait.equals(manualPenaltyWrapper.globalBan())){
+                    return null;
+                }
                 if(!manualPenaltyWrapper.allow(event.groupId(), event.userId())){
                     handleAbuse(event);
                     return null;

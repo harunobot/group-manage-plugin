@@ -155,11 +155,10 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
         if(manualPenaltyWrapper.mute() != null){
             PluginHandlerMatcher matcher = new PluginHandlerMatcher(
                 PluginReceivedType.PUBLIC,
-                PluginMatcherType.TEXT,
-                PluginTextType.PREFIX,
-                manualPenaltyWrapper.mute()
+                manualPenaltyWrapper.mute(),
+                manualPenaltyWrapper.splitChar()
             );
-            handlers.put(matcher, (String trait, String message, BotEvent event) -> {
+            handlers.put(matcher, (String params, BotEvent event) -> {
                 if(!enable){
                     return null;
                 }
@@ -172,11 +171,11 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
                         if(response.getStatus() == StatusType.FAILED){
                             return;
                         }
-                        handleManualMutePenalty(trait, event, response.getData());
+                        handleManualMutePenalty(params, event, response.getData());
                     };
                     fetchMessage(getReplySourceMessageId(event), cb);
                 } else {
-                    handleManualMutePenalty(trait, event, null);
+                    handleManualMutePenalty(params, event, null);
                 }
                 return null;
             });
@@ -184,11 +183,10 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
         if(manualPenaltyWrapper.block()!= null){
             PluginHandlerMatcher matcher = new PluginHandlerMatcher(
                 PluginReceivedType.PUBLIC,
-                PluginMatcherType.TEXT,
-                PluginTextType.PREFIX,
-                manualPenaltyWrapper.block()
+                manualPenaltyWrapper.block(),
+                manualPenaltyWrapper.splitChar()
             );
-            handlers.put(matcher, (String trait, String message, BotEvent event) -> {
+            handlers.put(matcher, (String params, BotEvent event) -> {
                 if(!enable){
                     return null;
                 }
@@ -201,11 +199,11 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
                         if(response.getStatus() == StatusType.FAILED){
                             return;
                         }
-                        handleManualBlockPenalty(trait, event, response.getData());
+                        handleManualBlockPenalty(params, event, response.getData());
                     };
                     fetchMessage(getReplySourceMessageId(event), cb);
                 } else {
-                    handleManualBlockPenalty(trait, event, null);
+                    handleManualBlockPenalty(params, event, null);
                 }
                 return null;
             });
@@ -213,17 +211,16 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
         if(manualPenaltyWrapper.ban()!= null){
             PluginHandlerMatcher matcher = new PluginHandlerMatcher(
                 PluginReceivedType.PUBLIC,
-                PluginMatcherType.TEXT,
-                PluginTextType.PREFIX,
-                manualPenaltyWrapper.ban()
+                manualPenaltyWrapper.ban(),
+                manualPenaltyWrapper.splitChar()
             );
-            handlers.put(matcher, (String trait, String message, BotEvent event) -> {
+            handlers.put(matcher, (String params, BotEvent event) -> {
                 if(!enable){
                     return null;
                 }
-                if(trait.equals(manualPenaltyWrapper.globalBan())){
-                    return null;
-                }
+//                if(params.equals(manualPenaltyWrapper.globalBan())){
+//                    return null;
+//                }
                 if(!manualPenaltyWrapper.allow(event.groupId(), event.userId())){
                     handleAbuse(event);
                     return null;
@@ -237,21 +234,20 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
                         if(response.getStatus() == StatusType.FAILED){
                             return;
                         }
-                        handleManualBanPenalty(trait, event, response.getData(), rejectJoin.get(), false);
+                        handleManualBanPenalty(params, event, response.getData(), rejectJoin.get(), false);
                     };
                     fetchMessage(getReplySourceMessageId(event), cb);
                 } else {
-                    handleManualBanPenalty(trait, event, null, rejectJoin.get(), false);
+                    handleManualBanPenalty(params, event, null, rejectJoin.get(), false);
                 }
                 return null;
             });
             PluginHandlerMatcher globaMmatcher = new PluginHandlerMatcher(
                 PluginReceivedType.PUBLIC,
-                PluginMatcherType.TEXT,
-                PluginTextType.PREFIX,
-                manualPenaltyWrapper.globalBan()
+                manualPenaltyWrapper.globalBan(),
+                manualPenaltyWrapper.splitChar()
             );
-            handlers.put(globaMmatcher, (String trait, String message, BotEvent event) -> {
+            handlers.put(globaMmatcher, (String params, BotEvent event) -> {
                 if(!enable){
                     return null;
                 }
@@ -268,11 +264,11 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
                         if(response.getStatus() == StatusType.FAILED){
                             return;
                         }
-                        handleManualBanPenalty(trait, event, response.getData(), rejectJoin.get(), true);
+                        handleManualBanPenalty(params, event, response.getData(), rejectJoin.get(), true);
                     };
                     fetchMessage(getReplySourceMessageId(event), cb);
                 } else {
-                    handleManualBanPenalty(trait, event, null, rejectJoin.get(), true);
+                    handleManualBanPenalty(params, event, null, rejectJoin.get(), true);
                 }
                 return null;
             });
@@ -327,7 +323,7 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
     
     
     @Override
-    public BotRequest handle(String trait, String message, BotEvent event) {
+    public BotRequest handle(String parameter, BotEvent event) {
         MDC.put("module", PLUGIN_NAME);
         switch(event.directiveType()){
 //            https://github.com/howmanybots/onebot/blob/master/v11/specs/event/request.md
@@ -841,7 +837,7 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
         MDC.clear();
     }
     
-    private void handleManualMutePenalty(String trait, BotEvent operatorEvent, BotEvent originEvent){
+    private void handleManualMutePenalty(String command, BotEvent operatorEvent, BotEvent originEvent){
 //        if( message.contains(" ")){
 //            String[] command = message.split(" ");
 //            muteUser(event, Integer.valueOf(command[1].trim())*60);
@@ -870,15 +866,22 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
             return;
         }
         int duration = -1;
-        BotMessage textMessage = findTextMessage(trait, operatorEvent.messages());
-        if(textMessage != null){
-            String command = textMessage.data().replace(trait, "").trim();
-            if(!command.isBlank()){
-                try{
-                    duration = Integer.valueOf(command);
-                }catch(NumberFormatException ex){
-                    LOG.warn("block duration number format failed {}", command);
-                }
+//        BotMessage textMessage = findTextMessage(params, operatorEvent.messages());
+//        if(textMessage != null){
+//            String command = textMessage.data().replace(params, "").trim();
+//            if(!command.isBlank()){
+//                try{
+//                    duration = Integer.valueOf(command);
+//                }catch(NumberFormatException ex){
+//                    LOG.warn("block duration number format failed {}", command);
+//                }
+//            }
+//        }
+        if(command != null){
+            try{
+                duration = Integer.valueOf(command);
+            }catch(NumberFormatException ex){
+                LOG.warn("block duration number format failed {}", command);
             }
         }
         if(duration > 0){
@@ -888,7 +891,7 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
         }
     }
     
-    private void handleManualBlockPenalty(String trait, BotEvent operatorEvent, BotEvent originEvent){
+    private void handleManualBlockPenalty(String command, BotEvent operatorEvent, BotEvent originEvent){
 //        BotMessage[] meaasges = new BotMessage[2];
 //        meaasges[0] = new BotMessage.Builder().messageType(MessageContentType.REPLY).data(String.valueOf(originEvent.messageId())).build();
 //        meaasges[1] = new BotMessage.Builder().messageType(MessageContentType.TEXT).data("warning +1").build();
@@ -915,15 +918,22 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
             return;
         }
         int duration = -1;
-        BotMessage textMessage = findTextMessage(trait, operatorEvent.messages());
-        if(textMessage != null){
-            String command = textMessage.data().replace(trait, "").trim();
-            if(!command.isBlank()){
-                try{
-                    duration = Integer.valueOf(command);
-                }catch(NumberFormatException ex){
-                    LOG.warn("block duration number format failed {}", command);
-                }
+//        BotMessage textMessage = findTextMessage(trait, operatorEvent.messages());
+//        if(textMessage != null){
+//            String command = textMessage.data().replace(trait, "").trim();
+//            if(!command.isBlank()){
+//                try{
+//                    duration = Integer.valueOf(command);
+//                }catch(NumberFormatException ex){
+//                    LOG.warn("block duration number format failed {}", command);
+//                }
+//            }
+//        }
+        if(command != null){
+            try{
+                duration = Integer.valueOf(command);
+            }catch(NumberFormatException ex){
+                LOG.warn("block duration number format failed {}", command);
             }
         }
         
@@ -965,13 +975,13 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
         }
     }
     
-    private void handleManualBanPenalty(String trait, BotEvent operatorEvent, BotEvent originEvent, boolean rejectJoin, boolean global){
+    private void handleManualBanPenalty(String cause, BotEvent operatorEvent, BotEvent originEvent, boolean rejectJoin, boolean global){
 //        sendGroupMessage(operatorEvent.groupId(), "kicked", -1);
         MDC.put("module", PLUGIN_NAME);
         long groupId = operatorEvent.groupId();
         long operatorId = operatorEvent.userId();
         long userId = 0;
-        String cause = null;
+//        String cause = null;
         boolean userIdExist = false;
         if(originEvent != null){
             userId = originEvent.userId();
@@ -989,15 +999,21 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
             sendGroupMessageWithMention(groupId, operatorId, "user not specified", -1);
             return;
         }
-        BotMessage textMessage = findTextMessage(trait, operatorEvent.messages());
-        if(textMessage != null){
-            cause = textMessage.data().replace(trait, "").trim();
-        }
+//        BotMessage textMessage = findTextMessage(trait, operatorEvent.messages());
+//        if(textMessage != null){
+//            cause = textMessage.data().replace(trait, "").trim();
+//        }
         kickMember(groupId, userId, rejectJoin);
-        sendGroupMessage(groupId, "skymas admin kicks member "+userId, -1);
-        if(cause != null && !cause.isBlank()){
-            sendGroupMessageWithMention(groupId, operatorId, "user "+userId+" has been kicked because of "+cause, -1);
+//        sendGroupMessage(groupId, "skymas admin kicks member "+userId, -1);
+        StringBuilder sb = new StringBuilder();
+        sb.append("user ").append(userId).append(" has been kicked");
+        if(global){
+            sb.append(" and global ban");
         }
+        if(cause != null && !cause.isBlank()){
+            sb.append(" because of ").append(cause);
+        }
+        sendGroupMessageWithMention(groupId, operatorId, sb.toString(), -1);
         if(originEvent != null){
             banMember(originEvent.messages(), groupId, userId, operatorId, CauseType.MANUAL, cause, global);
         } else {
@@ -1106,6 +1122,12 @@ public class GroupManagerPlugin extends HarunoPlugin implements PluginFilter, Pl
             ManualPenaltyConfig manualPenaltyConfig = config.getManualPenalty();
             if(!manualPenaltyConfig.isGlobal() && (manualPenaltyConfig.getGroups() == null || manualPenaltyConfig.getGroups().isEmpty())){
                 throw new IllegalArgumentException("manual penalty config  not global and group is empty");
+            }
+            if(manualPenaltyConfig.getCommandSplitChar() == null){
+                throw new IllegalArgumentException("manual penalty command_split_char can not be null");
+            }
+            if(manualPenaltyConfig.getCommandSplitChar().length() != 1){
+                throw new IllegalArgumentException("manual penalty command_split_char's length must be 1");
             }
             manualPenaltyWrapper = new ManualPenaltyWrapper(manualPenaltyConfig);
         }

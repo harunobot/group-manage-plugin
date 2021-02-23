@@ -5,12 +5,9 @@
  */
 package io.github.harunobot.plugin.groupmaster.data;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.harunobot.plugin.groupmaster.configuration.ManualPenaltyConfig;
-import io.github.harunobot.proto.event.BotMessage;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,6 +23,7 @@ public class ManualPenaltyWrapper {
     private final String block;
     private final String ban;
     private final String globalBan;
+    private String splitChar;
     private final int muteDuration;
     
     public ManualPenaltyWrapper(ManualPenaltyConfig manualPenaltyConfig){
@@ -41,6 +39,7 @@ public class ManualPenaltyWrapper {
         this.block = manualPenaltyConfig.getBlock();
         this.ban = manualPenaltyConfig.getBan();
         this.globalBan = manualPenaltyConfig.getGlobalBan();
+        this.splitChar = manualPenaltyConfig.getCommandSplitChar();
         this.muteDuration = manualPenaltyConfig.getMuteDuration();
     }
     
@@ -97,6 +96,13 @@ public class ManualPenaltyWrapper {
      */
     public String globalBan() {
         return globalBan;
+    }
+
+    /**
+     * @return the splitChar
+     */
+    public String splitChar() {
+        return splitChar;
     }
     
 }

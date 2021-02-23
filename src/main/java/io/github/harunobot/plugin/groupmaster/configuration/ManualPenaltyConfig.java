@@ -27,6 +27,8 @@ public class ManualPenaltyConfig {
     private String ban;
     @JsonProperty(value="global-ban-cmd")
     private String globalBan;
+    @JsonProperty(value="command_split_char")
+    private String commandSplitChar;
     @JsonProperty(value="mute-duration")
     private int muteDuration;
 
@@ -140,6 +142,20 @@ public class ManualPenaltyConfig {
      */
     public void setGlobalBan(String globalBan) {
         this.globalBan = globalBan;
+    }
+
+    /**
+     * @return the commandSplitChar
+     */
+    public String getCommandSplitChar() {
+        return commandSplitChar;
+    }
+
+    /**
+     * @param commandSplitChar the commandSplitChar to set
+     */
+    public void setCommandSplitChar(String commandSplitChar) {
+        this.commandSplitChar = commandSplitChar;
     }
 
 }
